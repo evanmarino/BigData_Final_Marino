@@ -14,7 +14,7 @@ imdb_clean = imdb_clean.withColumn("runtime", col("runtime").cast("int"))
 imdb_clean = imdb_clean.withColumn("vote_count", col("vote_count").cast("int"))
 imdb_clean = imdb_clean.withColumn("release_date", col("release_date").cast("date"))
 
-#This replaces all blank values with null
+#This replaces all blank or zero values with null
 for column in imdb_clean.columns:
 	dtype = dict(imdb_clean.dtypes)[column]
 	if dtype == 'string':
@@ -35,7 +35,7 @@ for column in imdb_clean.columns:
 
 imdb_clean = imdb_clean.drop(*drop_columns)
 
-#This deletes rows that have a null title or an invalid release date
+#This deletes rows that have a null title, an invalid release date, or have not been logged by more than one person
 imdb_clean = imdb_clean.filter(imdb_clean.title.isNotNull())
 imdb_clean = imdb_clean.filter((year("release_date") >= 1890) & (year("release_date") <= 2030))
 imdb_clean = imdb_clean.filter((col("vote_count").isNotNull()) & (col("vote_count") > 1))
@@ -45,5 +45,6 @@ num_cols = len(imdb_clean.columns)
 min_non_nulls_required = int(num_cols * 0.75)
 imdb_clean = imdb_clean.na.drop(thresh=min_non_nulls_required)
 
+#This creates the clean database to be used for gold layer
 imdb_clean.write.mode("overwrite").parquet("imdb_clean.parquet")
 spark.stop()

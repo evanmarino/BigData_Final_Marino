@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, mean, stddev
-
 spark = SparkSession.builder.appName("IMDB_movies").getOrCreate()
+
 imdb = spark.read.parquet("imdb_clean.parquet")
 
 #Only select certain columns applicable for aggregate dataset
@@ -14,7 +14,7 @@ imdb = imdb.select(
 	col("vote_count").alias("score_count")
 )
 
-#Filtering indie movies by making sure at least 5000 people have scored it, and making sure it has the right values to fit the dataset
+#Filtering indie movies by making sure at least 1000 people have scored it, and making sure it has the right values to fit the dataset
 imdb = imdb.filter((col("score_count") > 1000) & (col("budget") > 0) & (col("revenue") > 0)) 
 
 #Calculating roi to see what how profitable a movie was at the time of release
@@ -39,12 +39,13 @@ imdb = imdb.withColumn("underrated_score", col("roi_z") - col("count_z") / 125)
 imdb = imdb.withColumn("underappreciated_score", col("roi_z") - col("score_z") / 15)
 imdb = imdb.withColumn("secret_gems", col("count_z") - col("score_z") * 1.25)
 
-'''
 #prints out all 3 values with important values
 imdb.orderBy(col("underrated_score")).select("title", "release_date", "average_score", "score_count", "roi", "underrated_score").show()
 imdb.orderBy(col("underappreciated_score")).select("title", "release_date", "average_score", "score_count", "roi", "underappreciated_score").show()
 imdb.orderBy(col("secret_gems")).select("title", "release_date", "average_score", "score_count", "roi", "secret_gems").show()
-'''
-imdb.write.mode("overwrite").option("header", True).csv("imdb_clean_csv")
 
+'''
+#Creates the gold layer database to be implemented into Visualizations
+imdb.write.mode("overwrite").option("header", True).csv("imdb_clean_csv")
+'''
 spark.stop()
